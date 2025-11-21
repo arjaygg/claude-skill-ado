@@ -1,0 +1,48 @@
+{
+  "model": "claude-sonnet-4-5-20250929",
+
+  "permissions": {
+    "allow": [
+      "Bash(npm run :*)",
+      "Bash(npm install)",
+      "Bash(npm test)",
+      "Bash(node:*)",
+      "Bash(git status)",
+      "Bash(git add)",
+      "Bash(git commit)",
+      "Bash(git log:*)",
+      "Bash(git diff)",
+      "Read(./)",
+      "Read(./src/**)",
+      "Read(./test/**)",
+      "Read(./docs/**)",
+      "Read(./package.json)",
+      "Read(./tsconfig.json)"
+    ],
+    "deny": [
+      "Bash(curl:*)",
+      "Bash(wget:*)",
+      "Read(./.env)",
+      "Read(./.env.*)",
+      "Read(./.claude/settings.local.json)",
+      "Read(./secrets/**)"
+    ],
+    "ask": [
+      "Bash(git push:*)",
+      "Bash(npm publish:*)"
+    ]
+  },
+
+  "enableAllProjectMcpServers": true,
+
+  "sandbox": {
+    "enabled": true,
+    "network": {
+      "allowLocalBinding": true
+    }
+  },
+
+  "outputStyle": "Explanatory",
+  "cleanupPeriodDays": 20,
+  "includeCoAuthoredBy": true
+}

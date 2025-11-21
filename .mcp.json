@@ -1,0 +1,52 @@
+{
+  "mcpServers": {
+    "sequential-thinking": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-sequential-thinking"
+      ],
+      "env": {}
+    },
+
+    "directory-tree": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "@andredezzy/deep-directory-tree-mcp"
+      ],
+      "env": {}
+    },
+
+    "markitdown": {
+      "type": "stdio",
+      "command": "/Users/axos-agallentes/.local/bin/markitdown-mcp",
+      "args": [],
+      "env": {}
+    },
+
+    "context7": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "@upstash/context7-mcp"
+      ],
+      "env": {}
+    },
+
+    "azure-devops": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "@tiberriver256/mcp-server-azure-devops"
+      ],
+      "env": {
+        "AZURE_DEVOPS_ORG_URL": "${AZURE_DEVOPS_ORG_URL}",
+        "AZURE_DEVOPS_PAT": "${AZURE_DEVOPS_PAT}",
+        "AZURE_DEVOPS_AUTH_METHOD": "pat"
+      }
+    }
+  }
+}

@@ -1,0 +1,59 @@
+# Claude Code Configuration
+.claude/settings.local.json
+.claude/*.local.json
+
+# Environment variables and secrets
+.env
+.env.local
+.env.*.local
+.env.*.js
+*.env
+
+# Azure DevOps credentials
+AZURE_DEVOPS_PAT
+AZURE_DEVOPS_TOKEN
+
+# Node modules
+node_modules/
+package-lock.json
+yarn.lock
+
+# Build artifacts
+dist/
+build/
+*.tsbuildinfo
+
+# TypeScript
+*.js
+*.js.map
+*.d.ts
+!jest.config.js
+
+# IDE and Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+*.sublime-project
+*.sublime-workspace
+
+# Logs and debug
+*.log
+logs/
+debug/
+
+# Test coverage
+coverage/
+.nyc_output/
+
+# Temporary files
+*.tmp
+tmp/
+temp/
+.cache/
+
+# OS
+.DS_Store
+Thumbs.db
