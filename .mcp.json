@@ -47,6 +47,17 @@
         "AZURE_DEVOPS_PAT": "${AZURE_DEVOPS_PAT}",
         "AZURE_DEVOPS_AUTH_METHOD": "pat"
       }
+    },
+
+    "serena": {
+      "type": "stdio",
+      "command": "/Users/axos-agallentes/git/team-metrics/scripts/serena_mcp.sh",
+      "args": [],
+      "cwd": "/Users/axos-agallentes/git/claude-skill-ado",
+      "env": {
+        "SERENA_PROJECT_ROOT": "/Users/axos-agallentes/git/claude-skill-ado",
+        "SERENA_LOG_LEVEL": "INFO"
+      }
     }
   }
 }
