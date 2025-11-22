@@ -132,6 +132,46 @@ npm run example:query
 - Add tags based on criteria
 - Bulk field updates
 
+### 6. `fetch-work-item-history.ts`
+Fetch and analyze complete work item change history for forensic analysis.
+
+```bash
+# With default team (ABC)
+npx tsx scripts/fetch-work-item-history.ts
+
+# With custom team
+export TEAM_MEMBERS="John Doe,Jane Smith,Bob Johnson"
+export TEAM_NAME="Engineering Team"
+npx tsx scripts/fetch-work-item-history.ts
+```
+
+**Features:**
+- Fetches all work item updates and revisions
+- Analyzes assignment changes (who moved items and when)
+- Tracks state transitions, estimation changes, sprint changes
+- Identifies reassignments into/out of specified team
+- Generates detailed JSON analysis with change metadata
+
+**Use cases:**
+- Forensic analysis of work item changes
+- Track team reassignments and workload shifts
+- Analyze estimation accuracy trends
+- Identify bottlenecks and rework patterns
+
+**Configuration (via environment variables):**
+- `TEAM_MEMBERS` - Comma-separated team member names (default: ABC Team)
+- `TEAM_NAME` - Display name for the team (default: "ABC")
+- `AZURE_DEVOPS_ORG` - Azure DevOps organization
+- `AZURE_DEVOPS_PROJECT` - Azure DevOps project
+- `AZURE_DEVOPS_PAT` - Personal Access Token
+
+**Output:**
+Generates `change_analysis.json` with:
+- Summary of all changes
+- October-November focused analysis
+- Detailed change records with timestamps
+- Reassignment metrics
+
 ## Writing Custom Scripts
 
 Import the utilities and write your own batch operations:
@@ -168,16 +208,18 @@ console.log(`Updated ${updateResult.succeeded} work items`);
 
 ```
 azure-devops-batch/
-├── SKILL.md                      # Skill definition
-├── README.md                     # This file
-├── .env.example                  # Environment template
+├── SKILL.md                           # Skill definition
+├── README.md                          # This file
+├── .env.example                       # Environment template
 ├── scripts/
-│   ├── ado-client.ts            # HTTP client
-│   ├── ado-batch.ts             # Batch operations
-│   ├── ado-utils.ts             # Legacy utilities
-│   ├── package.json             # Dependencies
-│   ├── tsconfig.json            # TypeScript config
-│   ├── setup.sh                 # Setup script
+│   ├── ado-client.ts                 # HTTP client
+│   ├── ado-batch.ts                  # Batch operations
+│   ├── ado-utils.ts                  # Legacy utilities
+│   ├── ado-large-data.ts             # Large dataset utilities
+│   ├── fetch-work-item-history.ts    # Work item history analysis
+│   ├── package.json                  # Dependencies
+│   ├── tsconfig.json                 # TypeScript config
+│   ├── setup.sh                      # Setup script
 │   └── examples/
 │       ├── bulk-update-state.ts
 │       ├── create-sprint-tasks.ts
@@ -185,7 +227,7 @@ azure-devops-batch/
 │       ├── bulk-assign.ts
 │       └── query-and-update.ts
 └── references/
-    └── ado-batch-api-reference.md  # API documentation
+    └── ado-batch-api-reference.md    # API documentation
 ```
 
 ## API Reference
