@@ -6,6 +6,7 @@
 import fs from 'fs';
 import { WorkItem, AssignedTo } from '../types.js';
 import { Result, Ok, Err } from './result.js';
+import { workItemsCache, fileCacheKey } from './cache.js';
 
 /**
  * Load work items from JSON file
@@ -13,6 +14,13 @@ import { Result, Ok, Err } from './result.js';
  */
 export function loadWorkItems(filePath: string): Result<WorkItem[]> {
   try {
+    // PERFORMANCE OPTIMIZATION: Check cache first
+    const cacheKey = fileCacheKey(filePath);
+    const cached = workItemsCache.get(cacheKey);
+    if (cached) {
+      return Ok(cached);
+    }
+
     if (!fs.existsSync(filePath)) {
       return Err(
         new Error(`Work items file not found: ${filePath}`)
@@ -47,6 +55,9 @@ export function loadWorkItems(filePath: string): Result<WorkItem[]> {
         new Error(`Work items file is empty (contains no work items)`)
       );
     }
+
+    // Cache the loaded data
+    workItemsCache.set(cacheKey, data as WorkItem[]);
 
     return Ok(data as WorkItem[]);
   } catch (error) {

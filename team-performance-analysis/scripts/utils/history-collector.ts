@@ -9,6 +9,7 @@ import { parseTeamMembers, getTeamMemberNames } from "../../../shared/utils/toon
 import * as fs from "fs";
 import * as path from "path";
 import { Result, Ok, Err } from "./result.js";
+import { PerformanceTimer } from "./performance.js";
 
 interface WorkItemUpdate {
   id: number;
@@ -177,6 +178,8 @@ export async function collectWorkItemHistory(
   const delayInterval = options.rateLimit?.delayInterval || 50;
   const delayMs = options.rateLimit?.delayMs || 500;
 
+  const timer = new PerformanceTimer();
+
   if (verbose) {
     console.log("\n============================================================");
     console.log("🔍 COLLECTING WORK ITEM HISTORY");
@@ -216,33 +219,68 @@ export async function collectWorkItemHistory(
     let fetchedCount = 0;
     let errorCount = 0;
 
-    for (const id of options.workItemIds) {
-      try {
-        const updates = await getWorkItemUpdates(id);
+    // PERFORMANCE OPTIMIZATION: Use parallel batches instead of sequential requests
+    const BATCH_SIZE = 10; // Fetch 10 work items in parallel
+    const batches: number[][] = [];
+    
+    // Split work items into batches
+    for (let i = 0; i < options.workItemIds.length; i += BATCH_SIZE) {
+      batches.push(options.workItemIds.slice(i, i + BATCH_SIZE));
+    }
 
-        // Add workItemId to each update
-        updates.forEach(update => {
-          update.workItemId = id;
-        });
+    if (verbose) {
+      console.log(`   🚀 Using parallel fetching (${BATCH_SIZE} concurrent requests per batch)`);
+      console.log(`   📦 Total batches: ${batches.length}\n`);
+    }
 
-        allUpdates.push(...updates);
-        fetchedCount++;
-
-        if (verbose && fetchedCount % progressInterval === 0) {
-          console.log(`   Progress: ${fetchedCount}/${options.workItemIds.length} (${(fetchedCount/options.workItemIds.length*100).toFixed(1)}%)`);
+    // Process each batch in parallel
+    for (let batchIndex = 0; batchIndex < batches.length; batchIndex++) {
+      const batch = batches[batchIndex];
+      
+      // Fetch all work items in this batch concurrently
+      const batchPromises = batch.map(async (id) => {
+        try {
+          const updates = await getWorkItemUpdates(id);
+          
+          // Add workItemId to each update
+          updates.forEach(update => {
+            update.workItemId = id;
+          });
+          
+          return { success: true, id, updates };
+        } catch (error) {
+          return { success: false, id, error };
         }
+      });
 
-        // Rate limiting
-        if (fetchedCount % delayInterval === 0) {
-          await new Promise(resolve => setTimeout(resolve, delayMs));
-        }
-      } catch (error) {
-        errorCount++;
-        if (verbose) {
-          console.error(`   ✗ Error fetching updates for WI ${id}: ${error}`);
+      // Wait for all promises in this batch to complete
+      const batchResults = await Promise.all(batchPromises);
+
+      // Process results
+      for (const result of batchResults) {
+        if (result.success && 'updates' in result) {
+          allUpdates.push(...result.updates);
+          fetchedCount++;
+        } else {
+          errorCount++;
+          if (verbose) {
+            console.error(`   ✗ Error fetching updates for WI ${result.id}: ${result.error}`);
+          }
         }
       }
+
+      // Progress reporting
+      if (verbose && (batchIndex + 1) % Math.max(1, Math.floor(batches.length / 10)) === 0) {
+        console.log(`   Progress: ${fetchedCount}/${options.workItemIds.length} (${(fetchedCount/options.workItemIds.length*100).toFixed(1)}%)`);
+      }
+
+      // Rate limiting between batches (not between individual requests)
+      if (batchIndex < batches.length - 1) {
+        await new Promise(resolve => setTimeout(resolve, delayMs));
+      }
     }
+
+    timer.checkpoint('Phase 1: Fetch Complete');
 
     if (verbose) {
       console.log(`\n✓ Fetched updates for ${fetchedCount} work items`);
@@ -250,6 +288,7 @@ export async function collectWorkItemHistory(
       if (errorCount > 0) {
         console.log(`⚠️  Errors: ${errorCount}\n`);
       }
+      console.log(`⏱️  Fetch time: ${PerformanceTimer.formatDuration(timer.getDuration('Phase 1: Fetch Complete', 'Phase 1: Fetch Complete') || 0)}`);
     }
 
     // Save all updates
@@ -402,11 +441,14 @@ export async function collectWorkItemHistory(
       );
     }
 
+    timer.checkpoint('Complete');
+
     if (verbose) {
       console.log(`\n💾 Analysis saved to: ${analysisFile}`);
       console.log("\n============================================================");
       console.log("✅ WORK ITEM HISTORY COLLECTION COMPLETE!");
-      console.log("============================================================\n");
+      console.log("============================================================");
+      timer.printReport();
     }
 
     return Ok(analysisFile);

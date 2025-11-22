@@ -27,34 +27,47 @@ export function analyzeCycleTime(
     cycleTimesByMember[member] = [];
   }
 
-  for (const item of workItems) {
+  // PERFORMANCE OPTIMIZATION: Pre-filter completed items to reduce iterations
+  const completedStates = new Set(['Done', '5 - Done', 'Closed']);
+  const completedItems = workItems.filter(item => {
+    const state = extractField<string>(item, 'System.State');
+    return state && completedStates.has(state);
+  });
+
+  // PERFORMANCE OPTIMIZATION: Parse dates once and cache
+  const itemsWithDates = completedItems.map(item => {
     const createdDate = extractField<string>(item, 'System.CreatedDate');
     const closedDate = extractField<string>(item, 'System.ClosedDate')
       || extractField<string>(item, 'Microsoft.VSTS.Common.ClosedDate');
-    const state = extractField<string>(item, 'System.State');
-    const assignedTo = extractField(item, 'System.AssignedTo');
-    const workItemType = extractField<string>(item, 'System.WorkItemType') || 'Unknown';
-
-    const assignedName = getAssignedToName(assignedTo);
-
-    // Only analyze completed items
-    if (!state || !['Done', '5 - Done', 'Closed'].includes(state)) {
-      continue;
-    }
-
-    if (!createdDate || !closedDate) {
-      continue;
-    }
-
+    
+    if (!createdDate || !closedDate) return null;
+    
     const created = parseDate(createdDate);
     const closed = parseDate(closedDate);
+    
+    if (!created || !closed) return null;
+    
+    return {
+      item,
+      created,
+      closed,
+      cycleTimeDays: Math.floor((closed.getTime() - created.getTime()) / (1000 * 60 * 60 * 24)),
+      assignedName: getAssignedToName(extractField(item, 'System.AssignedTo')),
+      workItemType: extractField<string>(item, 'System.WorkItemType') || 'Unknown',
+      month: getMonth(createdDate)
+    };
+  }).filter(Boolean) as Array<{
+    item: WorkItem;
+    created: Date;
+    closed: Date;
+    cycleTimeDays: number;
+    assignedName: string;
+    workItemType: string;
+    month: string | null;
+  }>;
 
-    if (!created || !closed) {
-      continue;
-    }
-
-    const cycleTimeDays = Math.floor((closed.getTime() - created.getTime()) / (1000 * 60 * 60 * 24));
-
+  // PERFORMANCE OPTIMIZATION: Single pass through pre-processed items
+  for (const { cycleTimeDays, assignedName, workItemType, month } of itemsWithDates) {
     // By member
     if (teamMemberNames.includes(assignedName)) {
       if (!cycleTimesByMember[assignedName]) {
@@ -64,7 +77,6 @@ export function analyzeCycleTime(
     }
 
     // By month
-    const month = getMonth(createdDate);
     if (month) {
       if (!cycleTimesByMonth[month]) {
         cycleTimesByMonth[month] = [];
