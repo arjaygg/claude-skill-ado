@@ -5,13 +5,59 @@
 
 import fs from 'fs';
 import { WorkItem, AssignedTo } from '../types.js';
+import { Result, Ok, Err } from './result.js';
 
 /**
  * Load work items from JSON file
+ * Returns Result type: Ok(WorkItem[]) on success, Err(Error) on failure
  */
-export function loadWorkItems(filePath: string): WorkItem[] {
-  const content = fs.readFileSync(filePath, 'utf-8');
-  return JSON.parse(content);
+export function loadWorkItems(filePath: string): Result<WorkItem[]> {
+  try {
+    if (!fs.existsSync(filePath)) {
+      return Err(
+        new Error(`Work items file not found: ${filePath}`)
+      );
+    }
+
+    const content = fs.readFileSync(filePath, 'utf-8');
+
+    let data: any;
+    try {
+      data = JSON.parse(content);
+    } catch (parseError) {
+      return Err(
+        new Error(
+          `Failed to parse work items JSON from ${filePath}: ${
+            parseError instanceof Error ? parseError.message : String(parseError)
+          }`
+        )
+      );
+    }
+
+    if (!Array.isArray(data)) {
+      return Err(
+        new Error(
+          `Work items file must contain a JSON array, got: ${typeof data}`
+        )
+      );
+    }
+
+    if (data.length === 0) {
+      return Err(
+        new Error(`Work items file is empty (contains no work items)`)
+      );
+    }
+
+    return Ok(data as WorkItem[]);
+  } catch (error) {
+    return Err(
+      new Error(
+        `Error loading work items from ${filePath}: ${
+          error instanceof Error ? error.message : String(error)
+        }`
+      )
+    );
+  }
 }
 
 /**

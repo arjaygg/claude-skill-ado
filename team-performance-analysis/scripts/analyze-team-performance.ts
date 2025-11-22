@@ -8,7 +8,8 @@ import fs from 'fs';
 import path from 'path';
 import { parseTeamMembers, parseAnalysisConfig } from '../../../shared/utils/toon-parser.js';
 import { loadWorkItems } from './utils/data-loader.js';
-import { loadWorkItemHistory, hasHistoryData, getDefaultHistoryPath } from './utils/history-loader.js';
+import { loadWorkItemHistory, hasHistoryData, getDefaultHistoryPath, HistoryLoadError, HistoryError } from './utils/history-loader.js';
+import { isSuccess } from './utils/result.js';
 import { analyzeCycleTime, cycleTimeToToon } from './metrics/cycle-time.js';
 import { analyzeEstimationAccuracy, estimationToToon } from './metrics/estimation-accuracy.js';
 import { analyzeWorkItemAge, workItemAgeToToon } from './metrics/work-item-age.js';
@@ -52,10 +53,23 @@ export async function analyzeTeamPerformance(options: AnalysisOptions): Promise<
 
   if (historyAvailable) {
     console.log('📜 Loading work item history...');
-    workItemHistory = loadWorkItemHistory(historyFile);
-    console.log(`   ✓ Loaded ${workItemHistory.length} update records`);
-    console.log('   ✓ Deep metrics enabled (time-in-state, daily-wip, flow-efficiency)');
-    console.log();
+    const historyResult = loadWorkItemHistory(historyFile);
+
+    if (isSuccess(historyResult)) {
+      workItemHistory = historyResult.data;
+      console.log(`   ✓ Loaded ${workItemHistory.length} update records`);
+      console.log('   ✓ Deep metrics enabled (time-in-state, daily-wip, flow-efficiency)');
+      console.log();
+    } else {
+      const error = historyResult.error as HistoryError;
+      console.warn('⚠️  Failed to load work item history - deep metrics will be skipped');
+      console.warn(`   Reason: ${error.message}`);
+
+      if (error.code === HistoryLoadError.NOT_FOUND) {
+        console.warn('   To enable: Run fetch-work-item-history.ts from azure-devops-batch skill');
+      }
+      console.log();
+    }
   } else {
     console.log('ℹ️  No work item history found - deep metrics will be skipped');
     console.log(`   Expected: ${historyFile}`);

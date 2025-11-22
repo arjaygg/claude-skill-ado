@@ -25,6 +25,7 @@ import {
   validateTeamMembers,
   formatValidationErrors,
 } from './utils/validation.js';
+import { isFailure } from './utils/result.js';
 
 /**
  * Parse CLI arguments
@@ -81,6 +82,45 @@ WORKFLOW:
   4. Team performance analysis
   5. Results generation
 `);
+}
+
+/**
+ * Helper function to handle collection result
+ */
+async function performHistoryCollection(
+  workItemIds: number[],
+  historyDir: string,
+  teamMembersFile: string,
+  config: any,
+  mode: 'auto' | 'force' | 'interactive'
+): Promise<{ success: boolean }> {
+  const collectionResult = await collectWorkItemHistory({
+    workItemIds,
+    outputDir: historyDir,
+    teamMembersFile,
+    focusMonths: config.focusMonths,
+    rateLimit: {
+      progressInterval: config.rateLimit?.progressInterval || 20,
+      delayInterval: config.rateLimit?.delayInterval || 50,
+      delayMs: config.rateLimit?.delayMs || 500,
+    },
+    verbose: true,
+  });
+
+  if (isFailure(collectionResult)) {
+    const modeLabel =
+      mode === 'auto'
+        ? 'History collection failed'
+        : mode === 'force'
+          ? 'History recollection failed'
+          : 'History recollection failed';
+    console.warn(`⚠️  ${modeLabel} - proceeding with analysis only`);
+    console.warn(`   Error: ${collectionResult.error.message}`);
+    return { success: false };
+  }
+
+  console.log('✓ History collection complete\n');
+  return { success: true };
 }
 
 /**
@@ -196,14 +236,15 @@ async function runUnifiedAnalysis() {
     console.log();
 
     // Load work items
-    const workItems = loadWorkItems(config.dataFile);
+    const workItemsResult = loadWorkItems(config.dataFile);
 
-    if (!workItems || workItems.length === 0) {
-      console.error(`❌ No work items loaded from: ${config.dataFile}`);
-      console.error('   Ensure the file contains a valid JSON array of work items');
+    if (isFailure(workItemsResult)) {
+      console.error(`❌ Failed to load work items:`);
+      console.error(`   ${workItemsResult.error.message}`);
       process.exit(1);
     }
 
+    const workItems = workItemsResult.data;
     const workItemIds = workItems.map((wi: any) => wi.id);
 
     // Validate work item IDs
@@ -234,31 +275,15 @@ async function runUnifiedAnalysis() {
       console.log('   Fetching work item history from Azure DevOps...');
       console.log();
 
-      try {
-        // Collect history automatically
-        await collectWorkItemHistory({
-          workItemIds,
-          outputDir: historyDir,
-          teamMembersFile,
-          focusMonths: config.focusMonths,
-          rateLimit: {
-            progressInterval: config.rateLimit?.progressInterval || 20,
-            delayInterval: config.rateLimit?.delayInterval || 50,
-            delayMs: config.rateLimit?.delayMs || 500
-          },
-          verbose: true
-        });
-
-        console.log('✓ History collection complete\n');
+      const collectionResult = await performHistoryCollection(
+        workItemIds,
+        historyDir,
+        teamMembersFile,
+        config,
+        'auto'
+      );
+      if (collectionResult.success) {
         historyExists = true;
-      } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : String(error);
-        console.warn('⚠️  History collection failed - proceeding with analysis only');
-        console.warn(`   Error: ${errorMessage}`);
-        if (error instanceof Error && error.stack) {
-          console.debug(`   Stack: ${error.stack}`);
-        }
-        console.log();
       }
     } else {
       // History exists - decide whether to use, recollect, or skip
@@ -271,30 +296,14 @@ async function runUnifiedAnalysis() {
         console.log('   Re-fetching work item history from Azure DevOps...');
         console.log();
 
-        try {
-          await collectWorkItemHistory({
-            workItemIds,
-            outputDir: historyDir,
-            teamMembersFile,
-            focusMonths: config.focusMonths,
-            rateLimit: {
-              progressInterval: config.rateLimit?.progressInterval || 20,
-              delayInterval: config.rateLimit?.delayInterval || 50,
-              delayMs: config.rateLimit?.delayMs || 500
-            },
-            verbose: true
-          });
-
-          console.log('✓ History recollection complete\n');
-        } catch (error) {
-          const errorMessage = error instanceof Error ? error.message : String(error);
-          console.warn('⚠️  History recollection failed - using existing data');
-          console.warn(`   Error: ${errorMessage}`);
-          if (error instanceof Error && error.stack) {
-            console.debug(`   Stack: ${error.stack}`);
-          }
-          console.log();
-        }
+        await performHistoryCollection(
+          workItemIds,
+          historyDir,
+          teamMembersFile,
+          config,
+          'force'
+        );
+        console.log();
       } else {
         // Interactive mode - ask user
         console.log();
@@ -306,30 +315,14 @@ async function runUnifiedAnalysis() {
           console.log('   Re-fetching work item history from Azure DevOps...');
           console.log();
 
-          try {
-            await collectWorkItemHistory({
-              workItemIds,
-              outputDir: historyDir,
-              teamMembersFile,
-              focusMonths: config.focusMonths,
-              rateLimit: {
-                progressInterval: config.rateLimit?.progressInterval || 20,
-                delayInterval: config.rateLimit?.delayInterval || 50,
-                delayMs: config.rateLimit?.delayMs || 500
-              },
-              verbose: true
-            });
-
-            console.log('✓ History recollection complete\n');
-          } catch (error) {
-            const errorMessage = error instanceof Error ? error.message : String(error);
-            console.warn('⚠️  History recollection failed - using existing data');
-            console.warn(`   Error: ${errorMessage}`);
-            if (error instanceof Error && error.stack) {
-              console.debug(`   Stack: ${error.stack}`);
-            }
-            console.log();
-          }
+          await performHistoryCollection(
+            workItemIds,
+            historyDir,
+            teamMembersFile,
+            config,
+            'interactive'
+          );
+          console.log();
         } else if (userChoice === 'skip') {
           console.log('⏭️  Skipping analysis');
           console.log();

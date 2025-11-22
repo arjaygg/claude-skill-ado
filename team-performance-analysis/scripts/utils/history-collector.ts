@@ -8,6 +8,7 @@ import { adoRequest, getAdoConfig } from "../ado/ado-client.js";
 import { parseTeamMembers, getTeamMemberNames } from "../../../shared/utils/toon-parser.js";
 import * as fs from "fs";
 import * as path from "path";
+import { Result, Ok, Err } from "./result.js";
 
 interface WorkItemUpdate {
   id: number;
@@ -166,8 +167,11 @@ function analyzeSprintChanges(allUpdates: WorkItemUpdate[]) {
 
 /**
  * Collect work item history from Azure DevOps
+ * Returns Result type: Ok(analysisFilePath) on success, Err(Error) on failure
  */
-export async function collectWorkItemHistory(options: CollectionOptions): Promise<string> {
+export async function collectWorkItemHistory(
+  options: CollectionOptions
+): Promise<Result<string>> {
   const verbose = options.verbose !== false;
   const progressInterval = options.rateLimit?.progressInterval || 20;
   const delayInterval = options.rateLimit?.delayInterval || 50;
@@ -188,8 +192,18 @@ export async function collectWorkItemHistory(options: CollectionOptions): Promis
     }
 
     // Create output directory
-    if (!fs.existsSync(options.outputDir)) {
-      fs.mkdirSync(options.outputDir, { recursive: true });
+    try {
+      if (!fs.existsSync(options.outputDir)) {
+        fs.mkdirSync(options.outputDir, { recursive: true });
+      }
+    } catch (mkdirError) {
+      return Err(
+        new Error(
+          `Failed to create output directory ${options.outputDir}: ${
+            mkdirError instanceof Error ? mkdirError.message : String(mkdirError)
+          }`
+        )
+      );
     }
 
     // Phase 1: Fetch updates for all work items
@@ -375,7 +389,19 @@ export async function collectWorkItemHistory(options: CollectionOptions): Promis
     };
 
     const analysisFile = path.join(options.outputDir, "change_analysis.json");
-    fs.writeFileSync(analysisFile, JSON.stringify(analysis, null, 2));
+
+    try {
+      fs.writeFileSync(analysisFile, JSON.stringify(analysis, null, 2));
+    } catch (writeError) {
+      return Err(
+        new Error(
+          `Failed to save analysis file: ${
+            writeError instanceof Error ? writeError.message : String(writeError)
+          }`
+        )
+      );
+    }
+
     if (verbose) {
       console.log(`\n💾 Analysis saved to: ${analysisFile}`);
       console.log("\n============================================================");
@@ -383,13 +409,19 @@ export async function collectWorkItemHistory(options: CollectionOptions): Promis
       console.log("============================================================\n");
     }
 
-    return analysisFile;
+    return Ok(analysisFile);
 
   } catch (error) {
     if (verbose) {
       console.error("\n❌ Error:", error);
     }
-    throw error;
+    return Err(
+      new Error(
+        `Work item history collection failed: ${
+          error instanceof Error ? error.message : String(error)
+        }`
+      )
+    );
   }
 }
 
