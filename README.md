@@ -1,15 +1,15 @@
-# Claude Skill ADO
+# Claude Skill ADO - Team Performance Analyzer
 
-> **A comprehensive monorepo of Claude Code skills for Azure DevOps analysis, forensics, and team performance insights.**
+> **A unified Claude Code skill for comprehensive Azure DevOps team performance analysis.**
 
-Complete solution for collecting work item data and generating team performance metrics from Azure DevOps.
+Complete solution for collecting work item data and generating team performance metrics from Azure DevOps in a single, integrated workflow.
 
 ## 🎯 What It Does
 
-**Two complementary skills that work together:**
+**One unified skill that combines:**
 
-1. **azure-devops-batch** - Collects detailed work item change history from Azure DevOps
-2. **team-performance-analysis** - Analyzes collected data to generate insights and metrics
+1. **Data Collection** - Automatically fetches work item change history from Azure DevOps
+2. **Team Performance Analysis** - Generates comprehensive metrics and insights
 
 ## 🚀 Quick Start
 
@@ -17,51 +17,44 @@ Complete solution for collecting work item data and generating team performance 
 # 1. Setup (one time)
 git clone <repository>
 cd claude-skill-ado
-npm install --workspaces
 
-# 2. Configure
-cp azure-devops-batch/scripts/team_members.toon.example team_members.toon
-# Edit team_members.toon with your team
+# 2. Install dependencies
+cd team-performance-analysis/scripts
+npm install
 
-# 3. Set credentials
+# 3. Configure
+cp team_members.toon.example team_members.toon
+cp analysis_config.toon.example analysis_config.toon
+# Edit both files with your team and data paths
+
+# 4. Set Azure DevOps credentials
 export AZURE_DEVOPS_ORG="your-org"
 export AZURE_DEVOPS_PROJECT="your-project"
 export AZURE_DEVOPS_PAT="your-pat"
 
-# 4. Collect data
-cd azure-devops-batch/scripts
-npx tsx fetch-work-item-history.ts ../../team_members.toon
-
-# 5. Analyze
-cd ../../team-performance-analysis/scripts
+# 5. Run unified analysis
+# This automatically collects history and generates metrics
 npm run analyze
 ```
 
-## 📊 Skills Included
+## 📊 Unified Skill Features
 
-### azure-devops-batch
-**Data collection & forensic analysis**
-
+### Data Collection (Automatic)
 Fetches and analyzes work item updates to identify:
-- Assignment changes and team reassignments
-- State transitions in the workflow
-- Estimation changes and variance
-- Sprint/iteration changes
+- **Assignment changes** and team reassignments
+- **State transitions** in the workflow
+- **Estimation changes** and variance tracking
+- **Sprint/iteration** changes and movements
 
-**Usage**: `npx tsx fetch-work-item-history.ts team_members.toon`
-
-[→ Full Documentation](./azure-devops-batch/README.md)
-
-### team-performance-analysis
-**Metrics & insights generation**
-
+### Team Performance Metrics
 Calculates comprehensive team metrics:
-- Cycle time (creation to completion)
-- Estimation accuracy
-- Work item aging
-- Work patterns & trends
-- State distribution
-- Rework/quality metrics
+- **Cycle Time** - Creation to completion time
+- **Estimation Accuracy** - Estimated vs actual effort comparison
+- **Work Item Aging** - Incomplete items tracking
+- **Work Patterns** - Creation vs completion trends
+- **State Distribution** - Workflow state analysis
+- **Rework Rates** - Quality and rework metrics
+- **Deep Metrics** - Time in state, WIP, flow efficiency, sprint analysis
 
 **Usage**: `npm run analyze`
 
@@ -79,17 +72,41 @@ claude-skill-ado/
 │   └── utils/
 │       └── toon-parser.ts        # Shared TOON format parsing
 │
-├── azure-devops-batch/            # Skill 1: Data collection
-│   ├── README.md
-│   ├── scripts/
-│   ├── team_members.toon.example
-│   └── analysis_config.toon.example
-│
-└── team-performance-analysis/     # Skill 2: Analysis
+└── team-performance-analysis/     # Unified Skill
     ├── README.md
+    ├── skill.md
     ├── scripts/
-    ├── team_members.toon.example
-    └── analysis_config.toon.example
+    │   ├── team-performance-analyzer.ts    # Main unified entry point
+    │   ├── analyze-team-performance.ts     # Analysis engine
+    │   ├── analyze-team-performance-interactive.ts  # Legacy interactive
+    │   ├── types.ts
+    │   ├── ado/                            # Azure DevOps utilities
+    │   │   ├── ado-client.ts
+    │   │   ├── ado-batch.ts
+    │   │   ├── ado-large-data.ts
+    │   │   └── ado-utils.ts
+    │   ├── utils/
+    │   │   ├── data-loader.ts
+    │   │   ├── history-loader.ts
+    │   │   ├── history-collector.ts    # NEW: Unified collection module
+    │   │   └── interactive-prompts.ts
+    │   ├── metrics/
+    │   │   ├── cycle-time.ts
+    │   │   ├── estimation-accuracy.ts
+    │   │   ├── work-item-age.ts
+    │   │   ├── work-patterns.ts
+    │   │   ├── state-distribution.ts
+    │   │   ├── reopened-items.ts
+    │   │   ├── time-in-state.ts
+    │   │   ├── daily-wip.ts
+    │   │   ├── flow-efficiency.ts
+    │   │   └── sprint-analysis.ts
+    │   ├── package.json
+    │   ├── tsconfig.json
+    │   ├── team_members.toon.example
+    │   └── analysis_config.toon.example
+    ├── examples/
+    └── references/
 ```
 
 ## 🔧 Configuration
@@ -123,18 +140,17 @@ AZURE_DEVOPS_PROJECT          # Project name
 AZURE_DEVOPS_PAT              # Personal Access Token
 
 # Optional - Override config file paths
-TEAM_MEMBERS_TOON             # Path to team_members.toon
-ANALYSIS_CONFIG_TOON          # Path to analysis_config.toon
-TEAM_NAME                     # Display name for team (default: ABC)
+TEAM_MEMBERS_TOON             # Path to team_members.toon (default: team_members.toon)
+ANALYSIS_CONFIG_TOON          # Path to analysis_config.toon (default: analysis_config.toon)
+TEAM_NAME                     # Display name for team (default: Team)
 ```
 
 ## 📚 Documentation
 
-- **[ARCHITECTURE.md](./ARCHITECTURE.md)** - Technical design and data flow
+- **[ARCHITECTURE.md](./ARCHITECTURE.md)** - Unified architecture and design
 - **[WORKFLOW.md](./WORKFLOW.md)** - Complete step-by-step usage guide
-- **[azure-devops-batch/README.md](./azure-devops-batch/README.md)** - Data collection skill
-- **[team-performance-analysis/README.md](./team-performance-analysis/README.md)** - Analysis skill
-- **[azure-devops-batch/references/ado-batch-api-reference.md](./azure-devops-batch/references/ado-batch-api-reference.md)** - Azure DevOps API details
+- **[team-performance-analysis/README.md](./team-performance-analysis/README.md)** - Skill documentation and advanced usage
+- **[team-performance-analysis/references/ado-batch-api-reference.md](./team-performance-analysis/references/ado-batch-api-reference.md)** - Azure DevOps API details
 
 ## 🛠️ Installation
 
