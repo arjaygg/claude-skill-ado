@@ -135,35 +135,69 @@ npm run example:query
 ### 6. `fetch-work-item-history.ts`
 Fetch and analyze complete work item change history for forensic analysis.
 
-```bash
-# With default team (ABC)
-npx tsx scripts/fetch-work-item-history.ts
-
-# With custom team
-export TEAM_MEMBERS="John Doe,Jane Smith,Bob Johnson"
-export TEAM_NAME="Engineering Team"
-npx tsx scripts/fetch-work-item-history.ts
-```
-
 **Features:**
 - Fetches all work item updates and revisions
 - Analyzes assignment changes (who moved items and when)
 - Tracks state transitions, estimation changes, sprint changes
 - Identifies reassignments into/out of specified team
 - Generates detailed JSON analysis with change metadata
+- Supports TOON format for team member configuration
+
+**Usage Options:**
+
+**Option A: With TOON Configuration (Recommended)**
+```bash
+# Create team members TOON file
+cp scripts/team_members.toon.example team_members.toon
+# Edit team_members.toon with your team members
+
+# Run analysis
+npx tsx scripts/fetch-work-item-history.ts
+
+# Or specify TOON file path
+npx tsx scripts/fetch-work-item-history.ts team_members.toon
+
+# Or with environment variable
+export TEAM_MEMBERS_TOON="path/to/team_members.toon"
+npx tsx scripts/fetch-work-item-history.ts
+```
+
+**Option B: With Environment Variables**
+```bash
+# Set team members as comma-separated list
+export TEAM_MEMBERS="John Doe,Jane Smith,Bob Johnson"
+export TEAM_NAME="Engineering Team"
+npx tsx scripts/fetch-work-item-history.ts
+```
+
+**Option C: With Default Team**
+```bash
+# Uses default ABC team
+npx tsx scripts/fetch-work-item-history.ts
+```
+
+**TOON File Format:**
+```toon
+[N]{display_name,ado_identity,email,status,role}:
+  John Doe,John Doe <john@company.com>,john@company.com,active,developer
+  Jane Smith,Jane Smith <jane@company.com>,jane@company.com,active,developer
+```
+
+**Configuration:**
+- **TOON file** (recommended) - `team_members.toon` (checked in order: CLI arg, env var, current dir)
+- **Environment variables:**
+  - `TEAM_MEMBERS_TOON` - Path to TOON file with team members
+  - `TEAM_MEMBERS` - Comma-separated team member names
+  - `TEAM_NAME` - Display name for the team (default: "ABC")
+  - `AZURE_DEVOPS_ORG` - Azure DevOps organization
+  - `AZURE_DEVOPS_PROJECT` - Azure DevOps project
+  - `AZURE_DEVOPS_PAT` - Personal Access Token
 
 **Use cases:**
 - Forensic analysis of work item changes
 - Track team reassignments and workload shifts
 - Analyze estimation accuracy trends
 - Identify bottlenecks and rework patterns
-
-**Configuration (via environment variables):**
-- `TEAM_MEMBERS` - Comma-separated team member names (default: ABC Team)
-- `TEAM_NAME` - Display name for the team (default: "ABC")
-- `AZURE_DEVOPS_ORG` - Azure DevOps organization
-- `AZURE_DEVOPS_PROJECT` - Azure DevOps project
-- `AZURE_DEVOPS_PAT` - Personal Access Token
 
 **Output:**
 Generates `change_analysis.json` with:
@@ -211,6 +245,7 @@ azure-devops-batch/
 ├── SKILL.md                           # Skill definition
 ├── README.md                          # This file
 ├── .env.example                       # Environment template
+├── team_members.toon.example          # TOON format team members template
 ├── scripts/
 │   ├── ado-client.ts                 # HTTP client
 │   ├── ado-batch.ts                  # Batch operations
@@ -220,6 +255,8 @@ azure-devops-batch/
 │   ├── package.json                  # Dependencies
 │   ├── tsconfig.json                 # TypeScript config
 │   ├── setup.sh                      # Setup script
+│   ├── utils/
+│   │   └── toon-parser.ts            # TOON format parser
 │   └── examples/
 │       ├── bulk-update-state.ts
 │       ├── create-sprint-tasks.ts

@@ -9,6 +9,7 @@
  */
 
 import { adoRequest, getAdoConfig } from "./ado-client.js";
+import { parseTeamMembers, getTeamMemberNames } from "./utils/toon-parser.js";
 import * as fs from "fs";
 import * as path from "path";
 
@@ -261,11 +262,32 @@ async function main() {
     console.log(`   • Estimation changes: ${octNovEstimations.length}`);
     console.log(`   • Sprint changes: ${octNovSprints.length}\n`);
 
-    // Load team members from environment variable or use defaults
-    // Format: "Member Name,Member Name2" (comma-separated)
-    const teamMembersEnv = process.env.TEAM_MEMBERS || 'Jude Marco Bayot,Christopher Reyes,James Aaron Constantino,Erwin Biglang-awa';
-    const teamMembers = teamMembersEnv.split(',').map(m => m.trim());
-    const teamName = process.env.TEAM_NAME || 'ABC';
+    // Load team members from TOON file or environment variables
+    let teamMembers: string[] = [];
+    let teamName = process.env.TEAM_NAME || 'ABC';
+
+    const toonFile = process.env.TEAM_MEMBERS_TOON || process.argv[3] || 'team_members.toon';
+
+    if (fs.existsSync(toonFile)) {
+      console.log(`\n   📄 Loading team members from: ${toonFile}`);
+      try {
+        const parsedMembers = parseTeamMembers(toonFile);
+        teamMembers = getTeamMemberNames(parsedMembers);
+        console.log(`   ✓ Loaded ${teamMembers.length} team members from TOON file`);
+      } catch (error) {
+        console.warn(`   ⚠️  Could not parse TOON file: ${error}`);
+        console.log(`   Using environment variable fallback...\n`);
+        const teamMembersEnv = process.env.TEAM_MEMBERS || 'Jude Marco Bayot,Christopher Reyes,James Aaron Constantino,Erwin Biglang-awa';
+        teamMembers = teamMembersEnv.split(',').map(m => m.trim());
+      }
+    } else if (process.env.TEAM_MEMBERS) {
+      console.log(`\n   🔧 Using TEAM_MEMBERS environment variable`);
+      teamMembers = process.env.TEAM_MEMBERS.split(',').map(m => m.trim());
+    } else {
+      // Default ABC team
+      console.log(`\n   📋 Using default ABC team members`);
+      teamMembers = ['Jude Marco Bayot', 'Christopher Reyes', 'James Aaron Constantino', 'Erwin Biglang-awa'];
+    }
 
     console.log(`\n   🔍 Analyzing reassignments for team: ${teamName}`);
     console.log(`   Team members: ${teamMembers.join(', ')}\n`);
