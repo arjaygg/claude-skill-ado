@@ -12,6 +12,7 @@
 
 import fs from 'fs';
 import path from 'path';
+import readline from 'readline';
 import { parseTeamMembers, parseAnalysisConfig } from '../../shared/utils/toon-parser.js';
 import { loadWorkItems } from './utils/data-loader.js';
 import { loadWorkItemHistory, hasHistoryData, getDefaultHistoryPath } from './utils/history-loader.js';
@@ -20,9 +21,118 @@ import { analyzeTeamPerformance } from './analyze-team-performance.js';
 import { AnalysisOptions } from './types.js';
 
 /**
+ * Parse CLI arguments
+ */
+function parseCliArgs(): { forceCollection: boolean; showHelp: boolean } {
+  const args = process.argv.slice(2);
+  return {
+    forceCollection: args.includes('--force-collection'),
+    showHelp: args.includes('--help') || args.includes('-h')
+  };
+}
+
+/**
+ * Show help message
+ */
+function showHelp(): void {
+  console.log(`
+╭──────────────────────────────────────────────────────────────────╮
+│  Team Performance Analyzer - Usage Guide                          │
+╰──────────────────────────────────────────────────────────────────╯
+
+USAGE:
+  npm run analyze [OPTIONS]
+
+OPTIONS:
+  --force-collection   Force re-collection of work item history from Azure DevOps
+                       (skips the interactive prompt if history exists)
+
+  --help, -h          Show this help message
+
+EXAMPLES:
+  # Standard analysis (interactive if history exists)
+  npm run analyze
+
+  # Force refresh data from Azure DevOps
+  npm run analyze -- --force-collection
+
+CONFIGURATION:
+  The analyzer uses two configuration files:
+  - team_members.toon      Team roster definition
+  - analysis_config.toon   Analysis parameters
+
+  Set environment variables to override file paths:
+  - TEAM_MEMBERS_TOON
+  - ANALYSIS_CONFIG_TOON
+  - AZURE_DEVOPS_ORG (required)
+  - AZURE_DEVOPS_PROJECT (required)
+  - AZURE_DEVOPS_PAT (required)
+
+WORKFLOW:
+  1. Configuration loading (from files or environment)
+  2. Work items data loading
+  3. History collection (automatic if missing, interactive if exists + no --force-collection)
+  4. Team performance analysis
+  5. Results generation
+`);
+}
+
+/**
+ * Interactive prompt for collection decision
+ */
+async function promptCollectionDecision(): Promise<'use-existing' | 'recollect' | 'skip'> {
+  const rl = readline.createInterface({
+    input: process.stdin,
+    output: process.stdout
+  });
+
+  return new Promise((resolve) => {
+    console.log('📊 Work item history already exists');
+    console.log();
+    console.log('What would you like to do?');
+    console.log('  1. Use existing data (faster - for quick analysis)');
+    console.log('  2. Re-collect from Azure DevOps (slower - for fresh/updated data)');
+    console.log('  3. Skip analysis');
+    console.log();
+
+    rl.question('Enter your choice (1-3): ', (answer) => {
+      rl.close();
+
+      const choice = answer.trim().toLowerCase();
+      switch (choice) {
+        case '1':
+        case 'use-existing':
+          resolve('use-existing');
+          break;
+        case '2':
+        case 'recollect':
+          resolve('recollect');
+          break;
+        case '3':
+        case 'skip':
+          resolve('skip');
+          break;
+        default:
+          console.log('Invalid choice. Using existing data.');
+          resolve('use-existing');
+      }
+    });
+  });
+}
+
+/**
  * Unified Team Performance Analysis Workflow
  */
 async function runUnifiedAnalysis() {
+  // Parse CLI arguments
+  const { forceCollection, showHelp } = parseCliArgs();
+
+  // Show help if requested
+  if (showHelp) {
+    showHelp();
+    return;
+  }
+
   console.log('='.repeat(70));
   console.log('  UNIFIED TEAM PERFORMANCE ANALYZER');
   console.log('  Combining data collection and analysis');
@@ -72,7 +182,8 @@ async function runUnifiedAnalysis() {
     const historyFile = getHistoryDataPath(historyDir);
 
     // Check if history data needs to be collected
-    const historyExists = hasHistoryData(historyFile);
+    let historyExists = hasHistoryData(historyFile);
+    let shouldSkipAnalysis = false;
 
     if (!historyExists) {
       console.log('⚠️  Work item history not found');
@@ -98,14 +209,90 @@ async function runUnifiedAnalysis() {
         });
 
         console.log('✓ History collection complete\n');
+        historyExists = true;
       } catch (error) {
         console.warn('⚠️  History collection failed - proceeding with analysis only');
         console.warn(`   Error: ${error}`);
         console.log();
       }
     } else {
-      console.log('✓ Work item history found - using existing data');
+      // History exists - decide whether to use, recollect, or skip
+      console.log('✓ Work item history found');
       console.log();
+
+      if (forceCollection) {
+        // CLI flag provided - force recollection without prompt
+        console.log('🔄 FORCE RECOLLECTION MODE (--force-collection)');
+        console.log('   Re-fetching work item history from Azure DevOps...');
+        console.log();
+
+        try {
+          await collectWorkItemHistory({
+            workItemIds,
+            outputDir: historyDir,
+            teamMembersFile,
+            focusMonths: config.focusMonths,
+            rateLimit: {
+              progressInterval: config.rateLimit?.progressInterval || 20,
+              delayInterval: config.rateLimit?.delayInterval || 50,
+              delayMs: config.rateLimit?.delayMs || 500
+            },
+            verbose: true
+          });
+
+          console.log('✓ History recollection complete\n');
+        } catch (error) {
+          console.warn('⚠️  History recollection failed - using existing data');
+          console.warn(`   Error: ${error}`);
+          console.log();
+        }
+      } else {
+        // Interactive mode - ask user
+        console.log();
+        const userChoice = await promptCollectionDecision();
+        console.log();
+
+        if (userChoice === 'recollect') {
+          console.log('🔄 INTERACTIVE RECOLLECTION MODE');
+          console.log('   Re-fetching work item history from Azure DevOps...');
+          console.log();
+
+          try {
+            await collectWorkItemHistory({
+              workItemIds,
+              outputDir: historyDir,
+              teamMembersFile,
+              focusMonths: config.focusMonths,
+              rateLimit: {
+                progressInterval: config.rateLimit?.progressInterval || 20,
+                delayInterval: config.rateLimit?.delayInterval || 50,
+                delayMs: config.rateLimit?.delayMs || 500
+              },
+              verbose: true
+            });
+
+            console.log('✓ History recollection complete\n');
+          } catch (error) {
+            console.warn('⚠️  History recollection failed - using existing data');
+            console.warn(`   Error: ${error}`);
+            console.log();
+          }
+        } else if (userChoice === 'skip') {
+          console.log('⏭️  Skipping analysis');
+          console.log();
+          shouldSkipAnalysis = true;
+        } else {
+          // use-existing
+          console.log('✓ Using existing work item history data');
+          console.log();
+        }
+      }
+    }
+
+    // Skip analysis if user requested
+    if (shouldSkipAnalysis) {
+      console.log('Exiting...\n');
+      return;
     }
 
     // Run analysis
