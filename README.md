@@ -149,6 +149,7 @@ TEAM_NAME                     # Display name for team (default: Team)
 
 - **[ARCHITECTURE.md](./ARCHITECTURE.md)** - Unified architecture and design
 - **[WORKFLOW.md](./WORKFLOW.md)** - Complete step-by-step usage guide
+- **[PERFORMANCE_IMPROVEMENTS.md](./PERFORMANCE_IMPROVEMENTS.md)** - Performance optimizations and benchmarks
 - **[team-performance-analysis/README.md](./team-performance-analysis/README.md)** - Skill documentation and advanced usage
 - **[team-performance-analysis/references/ado-batch-api-reference.md](./team-performance-analysis/references/ado-batch-api-reference.md)** - Azure DevOps API details
 
