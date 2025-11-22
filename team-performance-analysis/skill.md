@@ -1,343 +1,217 @@
 ---
-name: team-performance-analysis
-description: Team performance metrics and analysis specialist. Analyzes Azure DevOps work item data to calculate cycle times, estimation accuracy, work patterns, and team productivity metrics.
+name: team-performance-analyzer
+description: Unified team performance analyzer. Automatically collects Azure DevOps work item history and generates comprehensive team performance metrics including cycle times, estimation accuracy, work patterns, and team productivity insights.
 ---
 
-# Team Performance Analysis Skill
+# Team Performance Analyzer Skill
 
-You are a team performance analysis expert. This skill enables you to analyze Azure DevOps work item data and generate comprehensive metrics about team performance, productivity, and work patterns.
+You are a team performance analysis expert. This unified skill enables you to automatically collect and analyze Azure DevOps work item data to generate comprehensive metrics about team performance, productivity, and work patterns.
 
 ## Core Capabilities
 
-### 1. Metrics Analysis
-- **Cycle Time Analysis**: Calculate time from creation to completion
+### 1. Automatic Data Collection
+- **Work Item History Fetching**: Automatically fetches all work item updates from Azure DevOps
+- **Smart Detection**: Checks if history data exists, fetches if needed
+- **Assignment Analysis**: Tracks team member reassignments and ownership changes
+- **State Transition Analysis**: Analyzes workflow state changes and patterns
+- **Estimation Tracking**: Captures and analyzes estimation changes
+- **Sprint/Iteration Tracking**: Monitors work item movements between sprints
+
+### 2. Comprehensive Metrics Analysis
+- **Cycle Time Analysis**: Time from creation to completion
 - **Estimation Accuracy**: Compare original estimates vs actual work
 - **Work Item Age**: Analyze age of incomplete items
-- **Work Patterns**: Analyze creation vs completion patterns
+- **Work Patterns**: Creation vs completion trends
 - **State Distribution**: Track work item states over time
 - **Reopened Items**: Identify quality issues and rework
-- **Team Productivity**: Compare metrics across team members
+- **Deep Metrics**: Time-in-state, daily WIP, flow efficiency, sprint analysis
 
-### 2. Interactive & Configuration-Driven
-- **Interactive mode (default)**: Prompts for date ranges, metrics, and parameters
-- Reads team members from **TOON file** (static reference)
-- Optional config file support for automation
-- NO hardcoded values - fully parameterized
-- Reusable across different teams and projects
+### 3. Team Performance Insights
+- **Team Member Comparison**: Metrics across all team members
+- **Productivity Trends**: Identify improvements or degradation
+- **Bottleneck Detection**: Find where work gets stuck
+- **Quality Metrics**: Rework rates and completion quality
+- **Workload Distribution**: Identify overloaded or underutilized members
 
-### 3. Data Format Support
-- **Input**: JSON (native ADO API format)
-- **Configuration**: TOON (team members, analysis params)
-- **Output**: JSON (structured metrics) + TOON (summaries for LLM)
+### 4. Single Unified Workflow
+- **One Command**: `npm run analyze` orchestrates entire process
+- **Automatic Detection**: Fetches history if not available
+- **Configuration-Driven**: Uses TOON files for full parameterization
+- **No Hardcoding**: All values configurable or from environment
 
-## Key Analysis Functions
+## Data Sources & Formats
 
-### Cycle Time Analysis
-Calculate average, median, and distribution of completion times:
-- By team member
-- By month
-- By work item type
-- Identify bottlenecks and trends
+### Input
+- **Work Items**: JSON from Azure DevOps (provided externally)
+- **Configuration**: TOON files (team members, analysis parameters)
+- **Azure DevOps API**: Automatic history and updates fetching
 
-### Estimation Accuracy
-Compare estimates vs actuals:
-- Total variance by member
-- Individual item variance
-- High-variance items (>50% off)
-- Trends over time
-- Improvement or degradation patterns
+### Output
+- **JSON**: Structured metrics for programmatic use
+- **TOON**: Human-readable summaries for review
+- **Console**: Real-time progress and key findings
 
-### Work Item Age
-Analyze incomplete work items:
-- Average age by member
-- Items older than threshold (e.g., 60 days)
-- Oldest items needing attention
-- State distribution of aged items
-
-### Work Patterns
-Understand work flow:
-- Creation vs completion by month
-- Backlog growth/shrinkage
-- Work item size distribution
-- Complexity analysis
-
-### State Distribution
-Track work item states:
-- State changes over time
-- Current state breakdown
-- Completion rates
-- Items stuck in specific states
-
-## Configuration Files
+## Configuration
 
 ### team_members.toon
-Define team roster:
-```toon
+Defines your team roster:
+```
 [N]{display_name,ado_identity,email,status,role}:
-  Jude Marco Bayot,Jude Marco Bayot <JudeMarco.Bayot@ph.axos.com>,JudeMarco.Bayot@ph.axos.com,active,developer
-  Christopher Reyes,Christopher Reyes <Christopher.Reyes@ph.axos.com>,Christopher.Reyes@ph.axos.com,active,developer
-  James Aaron Constantino,James Aaron Constantino <James.Constantino@ph.axos.com>,James.Constantino@ph.axos.com,active,developer
-  Erwin Biglang-awa,Erwin Biglang-awa <Erwin.BiglangAwa@ph.axos.com>,Erwin.BiglangAwa@ph.axos.com,active,developer
+  John Doe,John Doe <john@company.com>,john@company.com,active,developer
+  Jane Smith,Jane Smith <jane@company.com>,jane@company.com,active,developer
 ```
 
 ### analysis_config.toon
-Define analysis parameters:
-```toon
+Configures analysis parameters:
+```
 [1]{key,value}:
-  data_dir,data/july_november_2025
-  output_dir,data/july_november_2025/analysis
+  data_file,data/work_items.json
+  output_dir,data/analysis
+  team_members_file,team_members.toon
   date_range_start,2025-07-01
   date_range_end,2025-11-21
-  metrics,cycle_time,estimation_accuracy,work_item_age,work_patterns,state_distribution,reopened_items
-  age_threshold_days,60
-  high_variance_threshold_pct,50
+  focus_months,2025-10,2025-11
+  rate_limit_progress_interval,20
+  rate_limit_delay_interval,50
+  rate_limit_delay_ms,500
+  metrics,all
 ```
 
-## Usage Examples
+## Usage
 
-### Example 1: Interactive Analysis (Recommended)
+### Basic Usage
 ```bash
-cd ~/.claude/skills/team-performance-analysis/scripts
+# Install dependencies
+cd team-performance-analysis/scripts
+npm install
+
+# Configure
+cp team_members.toon.example team_members.toon
+cp analysis_config.toon.example analysis_config.toon
+# Edit both files with your settings
+
+# Set Azure DevOps credentials
+export AZURE_DEVOPS_ORG="your-org"
+export AZURE_DEVOPS_PROJECT="your-project"
+export AZURE_DEVOPS_PAT="your-pat"
+
+# Run unified analysis (automatic collection + analysis)
 npm run analyze
 ```
 
-The script will prompt you for:
-- Data file location
-- Date range (start/end)
-- Which metrics to run
-- Threshold values
-- Output directory
+### What Happens
+1. **Phase 1: Automatic Collection** (if needed)
+   - Detects if history data exists
+   - If not, fetches all work item updates from Azure DevOps
+   - Analyzes patterns (assignments, states, estimations, sprints)
+   - Saves analysis to `change_analysis.json`
 
-**No config file needed!**
+2. **Phase 2: Analysis**
+   - Loads work item data and history
+   - Calculates all configured metrics
+   - Generates insights and trends
+   - Outputs results in JSON and TOON formats
 
-### Example 2: Automated with Config File
+3. **Phase 3: Results**
+   - Display key findings in console
+   - Save detailed metrics to JSON
+   - Generate TOON summary for review
+
+## Key Metrics Explained
+
+### Cycle Time
+- **What**: Average days from creation to completion
+- **Good**: < 10 days median
+- **Warning**: > 30 days median
+
+### Estimation Accuracy
+- **What**: Variance between estimated and actual effort
+- **Good**: -10% to +10% variance
+- **Warning**: > 50% variance on individual items
+
+### Work Item Age
+- **What**: How long items remain incomplete
+- **Good**: < 20 days average
+- **Warning**: Items > 90 days incomplete
+
+### Rework Rate
+- **What**: Percentage of items reopened/reworked
+- **Good**: < 10% rework rate
+- **Warning**: > 20% rework rate
+
+## Advanced Features
+
+### Deep Metrics (with history data)
+- **Time in State**: How long items spend in each workflow state
+- **Daily WIP**: Work-in-progress tracking over time
+- **Flow Efficiency**: Ratio of active to total cycle time
+- **Sprint Analysis**: Sprint-level velocity and completion metrics
+
+### Team Reassignment Analysis
+- Tracks movement FROM team members
+- Tracks movement TO team members
+- Identifies handoff patterns
+- Analyzes workload distribution
+
+### Rate Limiting
+Configure Azure DevOps API rate limiting:
+- `rate_limit_progress_interval`: Progress update frequency
+- `rate_limit_delay_interval`: When to pause requests
+- `rate_limit_delay_ms`: Pause duration
+
+## Environment Variables
+
 ```bash
-npx tsx analyze-team-performance.ts \
-  team_members.toon \
-  analysis_config.toon \
-  data/work_items.json
+# Required
+AZURE_DEVOPS_ORG              # Organization name
+AZURE_DEVOPS_PROJECT          # Project name
+AZURE_DEVOPS_PAT              # Personal Access Token
+
+# Optional
+TEAM_MEMBERS_TOON             # Path to team_members.toon
+ANALYSIS_CONFIG_TOON          # Path to analysis_config.toon
+TEAM_NAME                     # Display name for team
 ```
 
-### Example 3: Programmatic Usage
-```typescript
-import { analyzeTeamPerformance } from './analyze-team-performance.js';
+## Backwards Compatibility
 
-const results = await analyzeTeamPerformance({
-  teamMembersFile: 'docs/context/team_members.toon',
-  configFile: 'analysis_config.toon',
-  workItemsFile: 'data/july_november_2025/all_work_items_july_november_2025.json',
-  metrics: 'all'
-});
-```
+Legacy scripts still available for advanced use:
+- `npm run analyze:legacy-interactive` - Old interactive mode
+- `npm run analyze:legacy-file` - Old file-based analysis
 
-## Output Formats
-
-### JSON Output (Structured Metrics)
-```json
-{
-  "cycleTime": {
-    "byMember": {
-      "Jude Marco Bayot": {
-        "avg": 12.5,
-        "median": 10.0,
-        "count": 45
-      }
-    }
-  },
-  "estimationAccuracy": {
-    "byMember": {
-      "Jude Marco Bayot": {
-        "totalEstimate": 320.0,
-        "totalActual": 340.0,
-        "variancePct": 6.25
-      }
-    }
-  }
-}
-```
-
-### TOON Output (LLM Summary)
-```toon
-[N]{member,avg_cycle_time,completion_rate,estimation_variance}:
-  Jude Marco Bayot,12.5,89.5,+6.25
-  Christopher Reyes,14.2,92.1,-2.10
-  James Aaron Constantino,11.8,87.3,+8.50
-  Erwin Biglang-awa,13.1,90.2,+4.75
-```
-
-## Best Practices
-
-### 1. Configuration Management
-- Always use TOON files for configuration
-- NEVER hardcode team members or parameters
-- Version control configuration files
-- Keep sensitive data (PAT tokens) in environment variables
-
-### 2. Data Quality
-- Validate input data before analysis
-- Handle missing or null fields gracefully
-- Report data quality issues clearly
-- Cross-validate metrics when possible
-
-### 3. Analysis Interpretation
-- Provide context with metrics (sample size, date range)
-- Identify outliers and explain them
-- Compare against baselines or previous periods
-- Avoid drawing conclusions from insufficient data
-
-### 4. Performance
-- Process large datasets in chunks
-- Cache intermediate results
-- Use TypeScript for better performance than Python
-- Parallelize independent metric calculations
+All functionality preserved - just reorganized for unified experience.
 
 ## Common Use Cases
 
-### Use Case 1: Sprint Retrospective Analysis
-Analyze team performance for sprint review:
-1. Load work items from sprint
-2. Calculate cycle time and completion rate
-3. Identify blockers and bottlenecks
-4. Generate summary for retrospective discussion
+1. **Quarterly Performance Review**
+   - Set date_range_start/end to quarter dates
+   - Run analysis
+   - Review all metrics
 
-### Use Case 2: Estimation Improvement
-Track estimation accuracy over time:
-1. Calculate variance for past sprints
-2. Identify consistently over/under-estimated item types
-3. Track improvement trends
-4. Provide feedback for refinement meetings
+2. **Team Member Comparison**
+   - Analyze same period for all members
+   - Compare cycle times, accuracy, workload
 
-### Use Case 3: Team Capacity Planning
-Understand team throughput:
-1. Analyze historical completion rates
-2. Calculate average velocity
-3. Identify seasonal patterns
-4. Project future capacity
+3. **Identify Bottlenecks**
+   - Review time-in-state metrics
+   - Find states where work gets stuck
 
-### Use Case 4: Performance Comparison
-Compare different periods or teams:
-1. Define comparison periods
-2. Calculate same metrics for each
-3. Identify trends and changes
-4. Generate comparison report
+4. **Quality Assessment**
+   - Check rework rates
+   - Identify problematic item types
 
-## Environment Variables Required
+5. **Capacity Planning**
+   - Review workload distribution
+   - Identify overloaded members
 
-```bash
-# No ADO PAT needed - this skill only analyzes existing data
-# All configuration via TOON files
-```
+## Troubleshooting
 
-## Script Structure
+**"History not found"**: First run will automatically fetch it from Azure DevOps
 
-```
-team-performance-analysis/
-├── skill.md                          # This file
-├── scripts/
-│   ├── package.json                  # Dependencies
-│   ├── tsconfig.json                 # TypeScript config
-│   ├── analyze-team-performance.ts   # Main orchestrator
-│   ├── config-loader.ts              # TOON config reader
-│   ├── types.ts                      # TypeScript interfaces
-│   ├── metrics/
-│   │   ├── cycle-time.ts             # Cycle time analysis
-│   │   ├── estimation-accuracy.ts    # Estimation analysis
-│   │   ├── work-item-age.ts          # Age analysis
-│   │   ├── work-patterns.ts          # Pattern analysis
-│   │   ├── state-distribution.ts     # State analysis
-│   │   └── reopened-items.ts         # Rework analysis
-│   └── utils/
-│       ├── data-loader.ts            # JSON data loading
-│       ├── toon-parser.ts            # TOON parsing utilities
-│       └── output-formatter.ts       # JSON/TOON output
-└── examples/
-    ├── analysis_config.toon          # Example config
-    └── run-full-analysis.ts          # Example usage
-```
+**"Unauthorized error"**: Verify AZURE_DEVOPS_PAT has work items permissions
 
-## Installation
+**"Rate limit exceeded"**: Increase `rate_limit_delay_ms` in config
 
-```bash
-cd ~/.claude/skills/team-performance-analysis/scripts
-npm install
-```
+**"File not found"**: Verify paths in analysis_config.toon are correct
 
-### Dependencies
-```json
-{
-  "dependencies": {
-    "@toon-format/toon": "^0.1.0",
-    "dotenv": "^17.2.3"
-  }
-}
-```
-
-## Getting Started
-
-1. **Create configuration files**:
-   - `team_members.toon` with team roster
-   - `analysis_config.toon` with parameters
-
-2. **Collect work item data** (use azure-devops-batch skill):
-   ```bash
-   # Use azure-devops-batch to fetch data first
-   ```
-
-3. **Run analysis**:
-   ```bash
-   npx tsx scripts/analyze-team-performance.ts
-   ```
-
-4. **Review results**:
-   - JSON files with detailed metrics
-   - TOON summaries for LLM consumption
-   - Console output with key findings
-
-## Integration with Other Skills
-
-### Works with azure-devops-batch
-1. Use `azure-devops-batch` to collect work item data
-2. Save data as JSON (native ADO format)
-3. Use `team-performance-analysis` to analyze data
-4. Generate reports and insights
-
-### Workflow Example
-```typescript
-// 1. Collect data (azure-devops-batch skill)
-const workItems = await fetchWorkItems({ /* config */ });
-fs.writeFileSync('data/work_items.json', JSON.stringify(workItems));
-
-// 2. Analyze data (team-performance-analysis skill)
-const analysis = await analyzeTeamPerformance({
-  workItemsFile: 'data/work_items.json',
-  teamMembersFile: 'team_members.toon',
-  configFile: 'analysis_config.toon'
-});
-
-// 3. Generate report
-generateReport(analysis);
-```
-
-## Important Notes
-
-### Data Privacy
-- Work item data may contain sensitive information
-- Store data files in git-ignored directories
-- Never commit PAT tokens or sensitive team data
-- Follow organizational data handling policies
-
-### Metric Interpretation
-- Always consider context (team size, project phase, etc.)
-- Metrics are indicators, not absolute measures
-- Combine quantitative metrics with qualitative feedback
-- Use for continuous improvement, not punitive measures
-
-### Customization
-- Add custom metrics by creating new files in `metrics/`
-- Extend TOON config format as needed
-- Create project-specific analysis scripts
-- Share reusable utilities back to this skill
-
----
-
-**Remember**: This skill analyzes data for insights. Use metrics to understand patterns, identify improvements, and support team growth - not for individual performance reviews or punitive measures.
+See WORKFLOW.md for complete troubleshooting guide.
