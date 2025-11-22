@@ -19,6 +19,12 @@ import { loadWorkItemHistory, hasHistoryData, getDefaultHistoryPath } from './ut
 import { collectWorkItemHistory, hasHistoryData as hasHistoryCollectorData, getHistoryDataPath } from './utils/history-collector.js';
 import { analyzeTeamPerformance } from './analyze-team-performance.js';
 import { AnalysisOptions } from './types.js';
+import {
+  validateAnalysisConfig,
+  validateWorkItemIds,
+  validateTeamMembers,
+  formatValidationErrors,
+} from './utils/validation.js';
 
 /**
  * Parse CLI arguments
@@ -151,13 +157,37 @@ async function runUnifiedAnalysis() {
                        (fs.existsSync('analysis_config.toon') ? 'analysis_config.toon' :
                         process.argv[3] || 'analysis_config.toon');
 
-    // Load configuration
+    // Load and validate configuration
     if (!fs.existsSync(configFile)) {
-      throw new Error(`Configuration file not found: ${configFile}`);
+      console.error(`❌ Configuration file not found: ${configFile}`);
+      console.error(`   Expected at: ${path.resolve(configFile)}`);
+      process.exit(1);
     }
 
     const config = parseAnalysisConfig(configFile);
+
+    // Validate configuration
+    const configValidation = validateAnalysisConfig(config);
+    if (!configValidation.valid) {
+      console.error('❌ Configuration validation failed:');
+      console.error(formatValidationErrors(configValidation.errors, ''));
+      process.exit(1);
+    }
+
+    // Load and validate team members
+    if (!fs.existsSync(teamMembersFile)) {
+      console.error(`❌ Team members file not found: ${teamMembersFile}`);
+      console.error(`   Expected at: ${path.resolve(teamMembersFile)}`);
+      process.exit(1);
+    }
+
     const teamMembers = parseTeamMembers(teamMembersFile);
+    const teamMembersValidation = validateTeamMembers(teamMembers);
+    if (!teamMembersValidation.valid) {
+      console.error('❌ Team members validation failed:');
+      console.error(formatValidationErrors(teamMembersValidation.errors, ''));
+      process.exit(1);
+    }
 
     console.log(`   ✓ Configuration loaded from: ${configFile}`);
     console.log(`   ✓ Team members loaded: ${teamMembers.length} members`);
@@ -165,13 +195,24 @@ async function runUnifiedAnalysis() {
     console.log(`   ✓ Analysis period: ${config.dateRangeStart} to ${config.dateRangeEnd}`);
     console.log();
 
-    // Check if work items data exists
-    if (!fs.existsSync(config.dataFile)) {
-      throw new Error(`Work items data file not found: ${config.dataFile}`);
+    // Load work items
+    const workItems = loadWorkItems(config.dataFile);
+
+    if (!workItems || workItems.length === 0) {
+      console.error(`❌ No work items loaded from: ${config.dataFile}`);
+      console.error('   Ensure the file contains a valid JSON array of work items');
+      process.exit(1);
     }
 
-    const workItems = loadWorkItems(config.dataFile);
     const workItemIds = workItems.map((wi: any) => wi.id);
+
+    // Validate work item IDs
+    const workItemValidation = validateWorkItemIds(workItemIds);
+    if (!workItemValidation.valid) {
+      console.error('❌ Work item IDs validation failed:');
+      console.error(formatValidationErrors(workItemValidation.errors, ''));
+      process.exit(1);
+    }
 
     console.log(`   📂 Loaded ${workItemIds.length} work items from data file`);
     console.log();
@@ -211,8 +252,12 @@ async function runUnifiedAnalysis() {
         console.log('✓ History collection complete\n');
         historyExists = true;
       } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
         console.warn('⚠️  History collection failed - proceeding with analysis only');
-        console.warn(`   Error: ${error}`);
+        console.warn(`   Error: ${errorMessage}`);
+        if (error instanceof Error && error.stack) {
+          console.debug(`   Stack: ${error.stack}`);
+        }
         console.log();
       }
     } else {
@@ -242,8 +287,12 @@ async function runUnifiedAnalysis() {
 
           console.log('✓ History recollection complete\n');
         } catch (error) {
+          const errorMessage = error instanceof Error ? error.message : String(error);
           console.warn('⚠️  History recollection failed - using existing data');
-          console.warn(`   Error: ${error}`);
+          console.warn(`   Error: ${errorMessage}`);
+          if (error instanceof Error && error.stack) {
+            console.debug(`   Stack: ${error.stack}`);
+          }
           console.log();
         }
       } else {
@@ -273,8 +322,12 @@ async function runUnifiedAnalysis() {
 
             console.log('✓ History recollection complete\n');
           } catch (error) {
+            const errorMessage = error instanceof Error ? error.message : String(error);
             console.warn('⚠️  History recollection failed - using existing data');
-            console.warn(`   Error: ${error}`);
+            console.warn(`   Error: ${errorMessage}`);
+            if (error instanceof Error && error.stack) {
+              console.debug(`   Stack: ${error.stack}`);
+            }
             console.log();
           }
         } else if (userChoice === 'skip') {
@@ -344,7 +397,38 @@ async function runUnifiedAnalysis() {
 
   } catch (error) {
     console.error('\n❌ Error in unified analysis:');
-    console.error(`   ${error}`);
+
+    if (error instanceof Error) {
+      console.error(`   Message: ${error.message}`);
+
+      // Provide contextual help based on error type
+      if (error.message.includes('ENOENT') || error.message.includes('not found')) {
+        console.error('   Hint: Check that all required files exist (config, team members, data file)');
+      } else if (
+        error.message.includes('EACCES') ||
+        error.message.includes('permission')
+      ) {
+        console.error(
+          '   Hint: Check file permissions (read for input files, write for output directory)'
+        );
+      } else if (error.message.includes('JSON')) {
+        console.error('   Hint: Check that data files contain valid JSON');
+      } else if (
+        error.message.includes('AZURE_DEVOPS') ||
+        error.message.includes('ADO')
+      ) {
+        console.error(
+          '   Hint: Check Azure DevOps credentials (AZURE_DEVOPS_ORG, AZURE_DEVOPS_PAT)'
+        );
+      }
+
+      if (error.stack) {
+        console.debug(`\n   Full stack trace:\n${error.stack}`);
+      }
+    } else {
+      console.error(`   ${String(error)}`);
+    }
+
     process.exit(1);
   }
 }
