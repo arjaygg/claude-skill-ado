@@ -79,6 +79,29 @@ This automatically:
 4. ✅ Calculates all metrics
 5. ✅ Generates reports
 
+## Usage Options
+
+### Standard Analysis (Interactive)
+```bash
+npm run analyze
+```
+- On first run: Automatically fetches history
+- On subsequent runs: Prompts you to choose:
+  - Use existing data (faster)
+  - Re-collect from Azure DevOps (slower, fresher)
+  - Skip analysis
+
+### Force Data Collection
+Force re-collection without interactive prompt (useful for automation):
+```bash
+npm run analyze -- --force-collection
+```
+
+### Show Help
+```bash
+npm run analyze -- --help
+```
+
 ## Configuration Details
 
 ### analysis_config.toon Parameters
@@ -173,6 +196,46 @@ Display console summary
 ```
 
 ## Advanced Usage
+
+### Data Collection & Refresh Strategies
+
+#### Strategy 1: Interactive (Default)
+```bash
+npm run analyze
+```
+**Best for:** Manual exploration and analysis
+- First run: Auto-collects history
+- Subsequent runs: Asks what you want to do
+- Choose between speed (existing) vs freshness (recollect)
+
+#### Strategy 2: Forced Collection (Automation)
+```bash
+npm run analyze -- --force-collection
+```
+**Best for:** CI/CD pipelines, automated reports, scheduled refreshes
+- Always re-fetches latest data from Azure DevOps
+- No prompts, no delays
+- Useful when you need guaranteed fresh data
+
+#### Strategy 3: Cached Only (Offline Mode)
+```bash
+npm run analyze
+# When prompted, choose "Use existing data"
+```
+**Best for:** Offline analysis, quick reports, cost optimization
+- Uses pre-collected data only
+- No Azure DevOps API calls
+- Fastest execution
+
+### Deleting & Refreshing Data
+To completely reset and re-collect data:
+```bash
+# Delete cached history
+rm -rf data/july_november_2025/history_detailed/
+
+# Next run will auto-collect
+npm run analyze
+```
 
 ### Legacy Interactive Mode
 ```bash
