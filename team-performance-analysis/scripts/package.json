@@ -1,0 +1,40 @@
+{
+  "name": "team-performance-analysis-skill",
+  "version": "1.0.0",
+  "description": "Team performance metrics and analysis for Azure DevOps work items",
+  "type": "module",
+  "scripts": {
+    "build": "tsc",
+    "analyze": "tsx analyze-team-performance-interactive.ts",
+    "analyze:interactive": "tsx analyze-team-performance-interactive.ts",
+    "analyze:file": "tsx analyze-team-performance.ts",
+    "analyze:cycle-time": "tsx metrics/cycle-time.ts",
+    "analyze:estimation": "tsx metrics/estimation-accuracy.ts",
+    "analyze:age": "tsx metrics/work-item-age.ts",
+    "analyze:patterns": "tsx metrics/work-patterns.ts",
+    "analyze:states": "tsx metrics/state-distribution.ts",
+    "analyze:rework": "tsx metrics/reopened-items.ts"
+  },
+  "keywords": [
+    "team-performance",
+    "metrics",
+    "analysis",
+    "azure-devops",
+    "cycle-time",
+    "estimation",
+    "toon"
+  ],
+  "author": "Claude Code Skill",
+  "license": "MIT",
+  "dependencies": {
+    "dotenv": "^17.2.3"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "tsx": "^4.20.6",
+    "typescript": "^5.3.3"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

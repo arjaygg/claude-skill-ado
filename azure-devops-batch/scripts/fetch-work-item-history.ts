@@ -9,7 +9,7 @@
  */
 
 import { adoRequest, getAdoConfig } from "./ado-client.js";
-import { parseTeamMembers, getTeamMemberNames } from "./utils/toon-parser.js";
+import { parseTeamMembers, parseAnalysisConfig, getTeamMemberNames } from "../../shared/utils/toon-parser.js";
 import * as fs from "fs";
 import * as path from "path";
 

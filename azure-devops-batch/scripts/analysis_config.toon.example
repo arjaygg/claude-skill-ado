@@ -1,0 +1,10 @@
+[1]{key,value}:
+  data_file,data/july_november_2025/all_work_items_july_november_2025.json
+  output_dir,data/july_november_2025/history_detailed
+  date_range_start,2025-07-01
+  date_range_end,2025-11-21
+  focus_months,2025-10,2025-11
+  rate_limit_progress_interval,20
+  rate_limit_delay_interval,50
+  rate_limit_delay_ms,500
+  output_sample_size,10

@@ -1,0 +1,9 @@
+[1]{key,value}:
+  data_file,data/july_november_2025/all_work_items_july_november_2025.json
+  output_dir,data/july_november_2025/analysis
+  team_members_file,team_members.toon
+  date_range_start,2025-07-01
+  date_range_end,2025-11-21
+  metrics,cycleTime,estimationAccuracy,workItemAge,workPatterns,stateDistribution,reopenedItems
+  age_threshold_days,60
+  high_variance_threshold_pct,50

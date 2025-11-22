@@ -1,0 +1,8 @@
+[1]{key,value}:
+  data_dir,data/july_november_2025
+  output_dir,data/july_november_2025/analysis
+  date_range_start,2025-07-01
+  date_range_end,2025-11-21
+  metrics,cycle_time,estimation_accuracy,work_item_age,work_patterns,state_distribution,reopened_items
+  age_threshold_days,60
+  high_variance_threshold_pct,50
