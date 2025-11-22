@@ -51,7 +51,7 @@
 
     "serena": {
       "type": "stdio",
-      "command": "/Users/axos-agallentes/git/team-metrics/scripts/serena_mcp.sh",
+      "command": "/Users/axos-agallentes/git/claude-skill-ado/scripts/serena_mcp.sh",
       "args": [],
       "cwd": "/Users/axos-agallentes/git/claude-skill-ado",
       "env": {
